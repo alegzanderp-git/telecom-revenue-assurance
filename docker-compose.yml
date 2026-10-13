@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  postgres_dwh:
+    image: postgres:16-alpine
+    container_name: telecom_postgres_dwh
+    environment:
+      POSTGRES_DB: telecom_dwh
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics_user -d telecom_dwh"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  analytics_env:
+    build: .
+    container_name: telecom_analytics_env
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app
+    environment:
+      - DB_HOST=postgres_dwh
+      - DB_PORT=5432
+      - DB_NAME=telecom_dwh
+      - DB_USER=analytics_user
+      - DB_PASSWORD=analytics_password
+    depends_on:
+      postgres_dwh:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
